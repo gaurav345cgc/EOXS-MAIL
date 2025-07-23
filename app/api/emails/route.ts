@@ -1,8 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { MongoClient } from "mongodb"
 
-const MONGODB_URI =
-  "mongodb+srv://innovationcelleoxs19:AkMuA3cN2tsMllAx@cluster0.cywqo3w.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+const MONGODB_URI = process.env.MONGODB_URI;
 
 let client: MongoClient | null = null
 
