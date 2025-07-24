@@ -31,7 +31,7 @@ export default function EmailDashboard() {
   const [error, setError] = useState("")
   const [isMobile, setIsMobile] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
-  const [splitPosition, setSplitPosition] = useState(50) // Percentage for split
+  const [splitPosition, setSplitPosition] = useState(50) // Start at 40% for better default
   const [isResizing, setIsResizing] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -214,16 +214,17 @@ export default function EmailDashboard() {
     e.preventDefault()
   }
 
+  // Clamp splitPosition between 30 and 70
+  const clampSplitPosition = (pos: number) => Math.min(70, Math.max(30, pos))
+
   const handleMouseMove = (e: MouseEvent) => {
     if (!isResizing || !containerRef.current) return
 
     const containerRect = containerRef.current.getBoundingClientRect()
     const newPosition = ((e.clientX - containerRect.left) / containerRect.width) * 100
 
-    // Limit the split position between 20% and 80%
-    if (newPosition >= 20 && newPosition <= 80) {
-      setSplitPosition(newPosition)
-    }
+    // Clamp the split position between 20% and 80%
+    setSplitPosition(clampSplitPosition(newPosition))
   }
 
   const handleMouseUp = () => {
@@ -241,6 +242,15 @@ export default function EmailDashboard() {
     }
   }, [isResizing])
 
+  // Ensure splitPosition stays in bounds on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setSplitPosition((pos) => clampSplitPosition(pos))
+    }
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-black" : "bg-gray-50"}`}>
@@ -252,7 +262,7 @@ export default function EmailDashboard() {
   // Mobile view when email is selected
   if (isMobile && selectedEmail) {
     return (
-      <div className={`min-h-screen ${isDarkMode ? "bg-black" : "bg-gray-50"}`}>
+      <div className={`min-h-screen w-full max-w-full overflow-x-auto ${isDarkMode ? "bg-black" : "bg-gray-50"}`}>
         <header
           className={`${isDarkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"} border-b px-4 py-3`}
         >
@@ -315,10 +325,10 @@ export default function EmailDashboard() {
               </div>
             </div>
           </div>
-          <div className="p-4">
-            <div className="prose max-w-none">
+          <div className="p-4 w-full max-w-full overflow-x-auto">
+            <div className="prose max-w-none overflow-x-auto">
               <p
-                className={`whitespace-pre-wrap break-words text-sm leading-relaxed ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+                className={`whitespace-pre-wrap break-words break-all max-w-full leading-relaxed ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
               >
                 {selectedEmail.content}
               </p>
@@ -330,7 +340,7 @@ export default function EmailDashboard() {
   }
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? "bg-black" : "bg-gray-50"}`}>
+    <div className={`min-h-screen w-full max-w-full overflow-x-auto ${isDarkMode ? "bg-black" : "bg-gray-50"}`}>
       {/* Header */}
       <header
         className={`${isDarkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"} border-b px-4 md:px-6 py-4 shadow-sm`}
@@ -374,9 +384,9 @@ export default function EmailDashboard() {
       <div className="flex h-[calc(100vh-80px)]">
         {/* Simplified Sidebar - Fixed Width */}
         <div
-          className={`w-16 md:w-64 ${
+          className={`w-16 md:w-64 max-w-full ${
             isDarkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"
-          } border-r transition-all duration-300 ease-in-out shadow-sm flex-shrink-0`}
+          } border-r transition-all duration-300 ease-in-out shadow-sm flex-shrink-0 overflow-x-auto`}
         >
           <div className="p-3 md:p-4">
             {/* Navigation - Only Important and Regular */}
@@ -442,8 +452,8 @@ export default function EmailDashboard() {
         <div className="flex-1 flex relative" ref={containerRef}>
           {/* Email List */}
           <div
-            className={`${isDarkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"} border-r transition-all duration-300`}
-            style={{ width: selectedEmail && !isMobile ? `${splitPosition}%` : "100%" }}
+            className={`${isDarkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"} border-r transition-all duration-300 w-full max-w-full overflow-x-auto`}
+            style={{ width: !selectedEmail || isMobile ? "100%" : `${splitPosition}%`, minWidth: !selectedEmail || isMobile ? undefined : "30%", maxWidth: !selectedEmail || isMobile ? undefined : "70%" }}
           >
             <div className={`p-4 border-b ${isDarkMode ? "border-gray-800" : "border-gray-200"}`}>
               <h2 className={`text-lg font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
@@ -468,7 +478,7 @@ export default function EmailDashboard() {
                 filteredEmails.map((email) => (
                   <div
                     key={email._id}
-                    className={`group p-4 border-b cursor-pointer transition-colors duration-200 ${
+                    className={`group p-4 border-b cursor-pointer transition-colors duration-200 w-full max-w-full ${
                       isDarkMode ? "border-gray-800 hover:bg-gray-800" : "border-gray-100 hover:bg-gray-50"
                     } ${
                       selectedEmail?._id === email._id
@@ -484,26 +494,29 @@ export default function EmailDashboard() {
                       }
                     }}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0 pr-2">
+                    <div className="flex items-start justify-between w-full max-w-full">
+                      <div className="flex-1 min-w-0 pr-2 w-full max-w-full">
                         <div className="flex items-center space-x-2">
-                          <p
-                            className={`text-sm truncate ${!email.isRead ? "font-semibold" : "font-medium"} ${isDarkMode ? "text-white" : "text-gray-900"}`}
-                          >
+                          <p className={`text-sm break-words whitespace-normal ${!email.isRead ? "font-semibold" : "font-medium"} ${isDarkMode ? "text-white" : "text-gray-900"}`}>
                             {email.sender}
                           </p>
                           {(email.classification === "IMPORTANT" || email.isImportant) && (
                             <Star className="h-4 w-4 text-yellow-500 fill-current flex-shrink-0" />
                           )}
                         </div>
-                        <p
-                          className={`text-sm truncate mt-1 ${!email.isRead ? "font-medium" : isDarkMode ? "text-gray-300" : "text-gray-600"}`}
-                        >
-                          {email.subject}
-                        </p>
-                        <p className={`text-xs truncate mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
-                          {email.content}
-                        </p>
+                        {currentView === "important" ? (
+                          <>
+                            <p className={`text-xs break-words whitespace-normal mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                              {email.content.length > 40 ? email.content.slice(0, 40) + '...' : email.content}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className={`text-xs break-words whitespace-normal mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                              {email.content.length > 40 ? email.content.slice(0, 40) + '...' : email.content}
+                            </p>
+                          </>
+                        )}
                         <p className={`text-xs mt-2 ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
                           {new Date(email.date).toLocaleDateString()}
                         </p>
@@ -570,8 +583,8 @@ export default function EmailDashboard() {
           {/* Email Content - Desktop Only */}
           {!isMobile && (
             <div
-              className={`${isDarkMode ? "bg-gray-900" : "bg-white"} transition-all duration-300 overflow-hidden`}
-              style={{ width: selectedEmail ? `${100 - splitPosition}%` : "0%" }}
+              className={`${isDarkMode ? "bg-gray-900" : "bg-white"} transition-all duration-300 overflow-x-auto w-full max-w-full`}
+              style={{ width: selectedEmail ? `${100 - splitPosition}%` : "0%", minWidth: selectedEmail ? "30%" : 0, maxWidth: selectedEmail ? "70%" : 0, display: selectedEmail ? undefined : "none" }}
             >
               {selectedEmail ? (
                 <div className="h-full flex flex-col">
@@ -636,9 +649,9 @@ export default function EmailDashboard() {
                     </div>
                   </div>
                   <div className="flex-1 p-6 overflow-y-auto">
-                    <div className="prose max-w-none">
+                    <div className="prose max-w-none overflow-x-auto">
                       <p
-                        className={`whitespace-pre-wrap break-words leading-relaxed ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+                        className={`whitespace-pre-wrap break-words break-all max-w-full leading-relaxed ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
                       >
                         {selectedEmail.content}
                       </p>
