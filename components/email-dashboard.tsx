@@ -122,15 +122,35 @@ export default function EmailDashboard() {
       })
     }
 
+    // Enhanced search - search across all text fields including email addresses
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
-      filtered = filtered.filter(
-        (email) =>
-          email.subject.toLowerCase().includes(searchLower) ||
-          email.sender.toLowerCase().includes(searchLower) ||
-          email.content.toLowerCase().includes(searchLower) ||
-          (email.classification && email.classification.toLowerCase().includes(searchLower)),
-      )
+      filtered = filtered.filter((email) => {
+        // Search in subject
+        const subjectMatch = email.subject.toLowerCase().includes(searchLower)
+
+        // Search in sender (which may contain name and/or email)
+        const senderMatch = email.sender.toLowerCase().includes(searchLower)
+
+        // Search in content
+        const contentMatch = email.content.toLowerCase().includes(searchLower)
+
+        // Search in classification
+        const classificationMatch = email.classification && email.classification.toLowerCase().includes(searchLower)
+
+        // Extract email address from sender if it contains angle brackets (e.g., "John Doe <john@example.com>")
+        const emailRegex = /<([^>]+)>/
+        const emailMatch = emailRegex.exec(email.sender)
+        const extractedEmail = emailMatch ? emailMatch[1].toLowerCase() : ""
+        const emailAddressMatch = extractedEmail.includes(searchLower)
+
+        // Also check if sender field itself looks like an email (contains @)
+        const directEmailMatch = email.sender.includes("@") && email.sender.toLowerCase().includes(searchLower)
+
+        return (
+          subjectMatch || senderMatch || contentMatch || classificationMatch || emailAddressMatch || directEmailMatch
+        )
+      })
     }
 
     // Sort emails by date (newest first)
@@ -262,7 +282,7 @@ export default function EmailDashboard() {
 
   if (loading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-gray-900" : "bg-white"}`}>
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-black" : "bg-white"}`}>
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
       </div>
     )
@@ -271,9 +291,9 @@ export default function EmailDashboard() {
   // Mobile view when email is selected
   if (isMobile && selectedEmail) {
     return (
-      <div className={`min-h-screen ${isDarkMode ? "bg-gray-900" : "bg-white"}`}>
+      <div className={`min-h-screen ${isDarkMode ? "bg-black" : "bg-white"}`}>
         <header
-          className={`${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} border-b px-4 py-3 shadow-sm`}
+          className={`${isDarkMode ? "bg-black border-gray-800" : "bg-white border-gray-200"} border-b px-4 py-3 shadow-sm`}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -288,8 +308,8 @@ export default function EmailDashboard() {
           </div>
         </header>
 
-        <div className={`${isDarkMode ? "bg-gray-900" : "bg-white"}`}>
-          <div className={`p-4 border-b ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}>
+        <div className={`${isDarkMode ? "bg-black" : "bg-white"}`}>
+          <div className={`p-4 border-b ${isDarkMode ? "border-gray-800" : "border-gray-200"}`}>
             <div className="flex flex-col space-y-3">
               <h3 className={`text-lg font-medium ${isDarkMode ? "text-white" : "text-gray-900"}`}>
                 {selectedEmail.subject}
@@ -339,10 +359,10 @@ export default function EmailDashboard() {
   }
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? "bg-gray-900" : "bg-white"}`}>
+    <div className={`min-h-screen ${isDarkMode ? "bg-black" : "bg-white"}`}>
       {/* Gmail-style Header */}
       <header
-        className={`${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} border-b px-6 py-2 shadow-sm`}
+        className={`${isDarkMode ? "bg-black border-gray-800" : "bg-white border-gray-200"} border-b px-6 py-2 shadow-sm`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -361,12 +381,12 @@ export default function EmailDashboard() {
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <Input
-                placeholder="Search mail"
+                placeholder="Search"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className={`pl-12 pr-10 h-12 rounded-full border-0 shadow-sm ${
                   isDarkMode
-                    ? "bg-gray-700 text-white placeholder-gray-400 focus:bg-gray-600"
+                    ? "bg-gray-900 text-white placeholder-gray-400 focus:bg-gray-800"
                     : "bg-gray-100 focus:bg-white focus:shadow-md"
                 }`}
               />
@@ -394,7 +414,7 @@ export default function EmailDashboard() {
       <div className="flex h-[calc(100vh-73px)]">
         {/* Gmail-style Sidebar */}
         <div
-          className={`w-16 md:w-64 ${isDarkMode ? "bg-gray-800" : "bg-gray-50"} transition-all duration-300 flex-shrink-0`}
+          className={`w-16 md:w-64 ${isDarkMode ? "bg-black" : "bg-gray-50"} transition-all duration-300 flex-shrink-0`}
         >
           <div className="p-4">
             <nav className="space-y-1">
@@ -403,10 +423,10 @@ export default function EmailDashboard() {
                 className={`w-full justify-start h-10 px-3 rounded-r-full ${
                   currentView === "important"
                     ? isDarkMode
-                      ? "bg-red-900 text-red-100 hover:bg-red-800"
+                      ? "bg-gray-800 text-white hover:bg-gray-700"
                       : "bg-red-100 text-red-900 hover:bg-red-200"
                     : isDarkMode
-                      ? "text-gray-300 hover:bg-gray-700"
+                      ? "text-gray-300 hover:bg-gray-800"
                       : "text-gray-700 hover:bg-gray-200"
                 }`}
                 onClick={() => setCurrentView("important")}
@@ -416,7 +436,7 @@ export default function EmailDashboard() {
                 {emails.filter((e) => e.classification === "IMPORTANT" || e.isImportant).length > 0 && (
                   <span
                     className={`hidden md:inline ml-auto text-sm ${
-                      currentView === "important" ? "text-red-700" : "text-gray-500"
+                      currentView === "important" ? (isDarkMode ? "text-gray-300" : "text-red-700") : "text-gray-500"
                     }`}
                   >
                     {emails.filter((e) => e.classification === "IMPORTANT" || e.isImportant).length}
@@ -429,20 +449,24 @@ export default function EmailDashboard() {
                 className={`w-full justify-start h-10 px-3 rounded-r-full ${
                   currentView === "not-important"
                     ? isDarkMode
-                      ? "bg-red-900 text-red-100 hover:bg-red-800"
+                      ? "bg-gray-800 text-white hover:bg-gray-700"
                       : "bg-red-100 text-red-900 hover:bg-red-200"
                     : isDarkMode
-                      ? "text-gray-300 hover:bg-gray-700"
+                      ? "text-gray-300 hover:bg-gray-800"
                       : "text-gray-700 hover:bg-gray-200"
                 }`}
                 onClick={() => setCurrentView("not-important")}
               >
                 <Inbox className="h-5 w-5 mr-3 flex-shrink-0" />
                 <span className="hidden md:inline font-medium">Inbox</span>
-                {getViewCount() > 0 && currentView === "not-important" && (
+                {emails.filter((e) => e.classification !== "IMPORTANT" && !e.isImportant).length > 0 && (
                   <span
                     className={`hidden md:inline ml-auto text-sm ${
-                      currentView === "not-important" ? "text-red-700" : "text-gray-500"
+                      currentView === "not-important"
+                        ? isDarkMode
+                          ? "text-gray-300"
+                          : "text-red-700"
+                        : "text-gray-500"
                     }`}
                   >
                     {emails.filter((e) => e.classification !== "IMPORTANT" && !e.isImportant).length}
@@ -457,14 +481,14 @@ export default function EmailDashboard() {
         <div className="flex-1 flex relative" ref={containerRef}>
           {/* Email List */}
           <div
-            className={`${isDarkMode ? "bg-gray-900" : "bg-white"} transition-all duration-300`}
+            className={`${isDarkMode ? "bg-black" : "bg-white"} transition-all duration-300`}
             style={{
               width: !selectedEmail || isMobile ? "100%" : `${splitPosition}%`,
               minWidth: !selectedEmail || isMobile ? undefined : "30%",
               maxWidth: !selectedEmail || isMobile ? undefined : "70%",
             }}
           >
-            <div className={`px-6 py-4 border-b ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}>
+            <div className={`px-6 py-4 border-b ${isDarkMode ? "border-gray-800" : "border-gray-200"}`}>
               <div className="flex items-center justify-between">
                 <h2 className={`text-xl font-normal ${isDarkMode ? "text-white" : "text-gray-900"}`}>
                   {getViewTitle()}
@@ -492,14 +516,14 @@ export default function EmailDashboard() {
                   <div
                     key={email._id}
                     className={`group px-6 py-3 border-b cursor-pointer transition-all duration-150 ${
-                      isDarkMode ? "border-gray-800 hover:shadow-md" : "border-gray-100 hover:shadow-sm"
+                      isDarkMode ? "border-gray-800 hover:shadow-md" : "border-gray-200 hover:shadow-xl"
                     } ${
                       selectedEmail?._id === email._id
                         ? isDarkMode
-                          ? "bg-red-900 bg-opacity-20 border-red-800"
+                          ? "bg-gray-900 border-gray-700"
                           : "bg-red-50 border-red-200"
                         : isDarkMode
-                          ? "hover:bg-gray-800"
+                          ? "hover:bg-gray-900"
                           : "hover:bg-gray-50"
                     } ${!email.isRead ? "bg-opacity-50" : ""}`}
                     onClick={() => {
@@ -568,10 +592,7 @@ export default function EmailDashboard() {
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="end"
-                                className={isDarkMode ? "bg-gray-800 border-gray-700" : ""}
-                              >
+                              <DropdownMenuContent align="end" className={isDarkMode ? "bg-black border-gray-800" : ""}>
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation()
@@ -580,7 +601,7 @@ export default function EmailDashboard() {
                                       email.isImportant || email.classification === "IMPORTANT",
                                     )
                                   }}
-                                  className={isDarkMode ? "text-gray-300 hover:bg-gray-700" : ""}
+                                  className={isDarkMode ? "text-gray-300 hover:bg-gray-800" : ""}
                                 >
                                   <Star className="h-4 w-4 mr-2" />
                                   {email.isImportant || email.classification === "IMPORTANT" ? "Unstar" : "Star"}
@@ -590,7 +611,7 @@ export default function EmailDashboard() {
                                     e.stopPropagation()
                                     deleteEmail(email._id)
                                   }}
-                                  className={`text-red-600 ${isDarkMode ? "hover:bg-gray-700" : ""}`}
+                                  className={`text-red-600 ${isDarkMode ? "hover:bg-gray-800" : ""}`}
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
                                   Delete
@@ -612,9 +633,9 @@ export default function EmailDashboard() {
             <div
               className={`absolute inset-y-0 w-1 cursor-col-resize transition-colors duration-200 ${
                 isResizing
-                  ? "bg-red-500"
+                  ? "bg-gray-500"
                   : isDarkMode
-                    ? "bg-gray-700 hover:bg-gray-600"
+                    ? "bg-gray-800 hover:bg-gray-700"
                     : "bg-gray-300 hover:bg-gray-400"
               }`}
               style={{ left: `${splitPosition}%`, transform: "translateX(-50%)" }}
@@ -627,7 +648,7 @@ export default function EmailDashboard() {
           {/* Email Content */}
           {!isMobile && (
             <div
-              className={`${isDarkMode ? "bg-gray-900" : "bg-white"} transition-all duration-300`}
+              className={`${isDarkMode ? "bg-black" : "bg-white"} transition-all duration-300`}
               style={{
                 width: selectedEmail ? `${100 - splitPosition}%` : "0%",
                 minWidth: selectedEmail ? "30%" : 0,
@@ -637,7 +658,7 @@ export default function EmailDashboard() {
             >
               {selectedEmail ? (
                 <div className="h-full flex flex-col">
-                  <div className={`p-6 border-b ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}>
+                  <div className={`p-6 border-b ${isDarkMode ? "border-gray-800" : "border-gray-200"}`}>
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1 min-w-0">
                         <h3 className={`text-2xl font-normal mb-3 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
@@ -672,7 +693,7 @@ export default function EmailDashboard() {
                             selectedEmail.isImportant || selectedEmail.classification === "IMPORTANT",
                           )
                         }
-                        className={`${isDarkMode ? "border-gray-600 hover:bg-gray-800" : "border-gray-300 hover:bg-gray-50"}`}
+                        className={`${isDarkMode ? "border-gray-700 hover:bg-gray-800" : "border-gray-300 hover:bg-gray-50"}`}
                       >
                         <Star className="h-4 w-4 mr-2" />
                         {selectedEmail.isImportant || selectedEmail.classification === "IMPORTANT" ? "Unstar" : "Star"}
@@ -681,7 +702,7 @@ export default function EmailDashboard() {
                         variant="outline"
                         size="sm"
                         onClick={() => deleteEmail(selectedEmail._id)}
-                        className={`${isDarkMode ? "border-gray-600 hover:bg-gray-800" : "border-gray-300 hover:bg-gray-50"}`}
+                        className={`${isDarkMode ? "border-gray-700 hover:bg-gray-800" : "border-gray-300 hover:bg-gray-50"}`}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete
